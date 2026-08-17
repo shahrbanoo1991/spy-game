@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>SPY GAME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- ============ FIXED BACKGROUND LAYER ============ -->
+  <!-- Replace images/spy-background.jpg with your own masked-spy image -->
+  <div class="bg-layer">
+    <div class="bg-image"></div>
+    <div class="bg-vignette"></div>
+    <div class="bg-grain"></div>
+  </div>
+
+  <!-- ============ APP ROOT ============ -->
+  <main id="app">
+
+    <!-- ============================================================
+         SCREEN 1 — HOME / JOIN
+    ============================================================= -->
+    <section class="screen is-active" id="screen-home" data-screen="home">
+      <div class="reticle reticle--tl"></div>
+      <div class="reticle reticle--br"></div>
+
+      <div class="home-stack">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          <span>CLASSIFIED OPERATION</span>
+        </div>
+
+        <h1 class="brand-title">
+          <span class="brand-title-line">SPY</span>
+          <span class="brand-title-line brand-title-line--accent">GAME</span>
+        </h1>
+        <p class="brand-subtitle">Trust no one.</p>
+
+        <div class="glass-card home-card">
+          <label class="field-label" for="input-name">CODENAME</label>
+          <input
+            id="input-name"
+            class="text-input"
+            type="text"
+            maxlength="16"
+            placeholder="Enter your name"
+            autocomplete="off"
+          />
+
+          <div class="btn-stack">
+            <!-- FASTAPI: GET /join/{player_name} — join an existing room -->
+            <button class="btn btn--ghost" id="btn-join">
+              <span>JOIN GAME</span>
+            </button>
+
+            <!-- FASTAPI: create room, then GET /join/{player_name} as host -->
+            <button class="btn btn--primary" id="btn-create">
+              <span>CREATE GAME</span>
+              <span class="btn-glow"></span>
+            </button>
+          </div>
+
+          <div class="room-code-entry" id="room-code-entry">
+            <label class="field-label" for="input-room-code">ROOM CODE</label>
+            <input
+              id="input-room-code"
+              class="text-input text-input--mono"
+              type="text"
+              maxlength="4"
+              inputmode="numeric"
+              placeholder="0000"
+              autocomplete="off"
+            />
+            <button class="btn btn--primary btn--small" id="btn-confirm-join">
+              <span>ENTER ROOM</span>
+            </button>
+          </div>
+        </div>
+
+        <p class="home-footnote">Minimum 3 agents required to deploy</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 2 — ROOM / LOBBY
+    ============================================================= -->
+    <section class="screen" id="screen-lobby" data-screen="lobby">
+      <header class="screen-header">
+        <button class="icon-btn" id="btn-lobby-leave" aria-label="Leave room">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="screen-header-label">LOBBY</span>
+        <span class="status-pill status-pill--live"><span class="status-dot"></span>LIVE</span>
+      </header>
+
+      <div class="lobby-stack">
+          <div class="glass-card code-card">
+              <span class="field-label">ROOM CODE</span>
+              <div class="code-display">
+                  <span id="room-code-value">5832</span>
+              </div>
+              <!-- FASTAPI: room code comes from create-room response -->
+              <button class="btn btn--outline btn--small" id="btn-copy-code">
+                  <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2" /><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1" stroke="currentColor" stroke-width="2" /></svg>
+                  <span>COPY CODE</span>
+              </button>
+          </div>
+
+          <div class="glass-card players-card">
+              <div class="players-card-head">
+                  <span class="field-label">AGENTS IN ROOM</span>
+                  <span class="players-count"><span id="players-count-value">1</span>/12</span>
+              </div>
+
+              <!-- FASTAPI: GET /players — poll or websocket to populate this list -->
+              <ul class="player-list" id="player-list">
+                  <!-- Player rows injected by script.js — template below -->
+              </ul>
+
+              <div class="waiting-row" id="waiting-row">
+                  <span class="pulse-dot"></span>
+                  <span>Waiting for players&nbsp;<span class="dot-anim"><span>.</span><span>.</span><span>.</span></span></span>
+              </div>
+          </div>
+          <div id="timer-settings" class="timer-settings">
+              <div class="timer-label">DISCUSSION TIME</div>
+
+              <div class="timer-options">
+                  <button class="timer-option is-selected" data-seconds="300">5 MIN</button>
+                  <button class="timer-option" data-seconds="600">10 MIN</button>
+                  <button class="timer-option" data-seconds="720">12 MIN</button>
+                  <button class="timer-option" data-seconds="900">15 MIN</button>
+              </div>
+          </div>
+
+          <!-- FASTAPI: GET /start — host only, requires 3+ players -->
+          <button class="btn btn--primary btn--large" id="btn-start-game" disabled>
+              <span>START GAME</span>
+              <span class="btn-glow"></span>
+          </button>
+          <p class="lobby-hint" id="lobby-hint">Only the host can start &middot; 3 agents minimum</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 3 — ROLE REVEAL
+    ============================================================= -->
+    <section class="screen" id="screen-role" data-screen="role">
+      <header class="screen-header">
+        <span class="screen-header-label">ROUND 1</span>
+        <span class="status-pill"><span class="status-dot status-dot--red"></span>CLASSIFIED</span>
+      </header>
+
+      <div class="role-stack">
+
+        <!-- Pre-reveal state -->
+        <div class="role-pending" id="role-pending">
+          <div class="dossier">
+            <div class="dossier-corner dossier-corner--tl"></div>
+            <div class="dossier-corner dossier-corner--tr"></div>
+            <div class="dossier-corner dossier-corner--bl"></div>
+            <div class="dossier-corner dossier-corner--br"></div>
+            <svg class="dossier-icon" viewBox="0 0 24 24" fill="none" width="48" height="48">
+              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            <p class="dossier-text">Your identity is classified</p>
+          </div>
+
+          <!-- FASTAPI: GET /role/{player_name} — fetch this player's role -->
+          <button class="btn btn--primary btn--large" id="btn-reveal-role">
+            <span>REVEAL MY ROLE</span>
+            <span class="btn-glow"></span>
+          </button>
+        </div>
+
+        <!-- Post-reveal: normal player -->
+        <div class="role-result role-result--normal" id="role-result-normal" hidden>
+          <span class="role-tag role-tag--normal">AGENT BRIEFING</span>
+          <div class="glass-card word-card">
+            <span class="field-label">SECRET WORD</span>
+            <p class="secret-word" id="secret-word-value">HOSPITAL</p>
+          </div>
+          <p class="role-instruction">Describe it carefully. Don't say it outright — the spy is listening.</p>
+          <button class="btn btn--outline" id="btn-role-continue-normal">
+            <span>CONTINUE</span>
+          </button>
+        </div>
+
+        <!-- Post-reveal: spy -->
+        <div class="role-result role-result--spy" id="role-result-spy" hidden>
+          <div class="spy-burst"></div>
+          <span class="role-tag role-tag--spy">THREAT DETECTED</span>
+          <h2 class="spy-title">YOU ARE<br>THE SPY</h2>
+          <p class="spy-instruction">Listen carefully. Blend in.<br>Don't get caught.</p>
+          <button class="btn btn--outline btn--danger" id="btn-role-continue-spy">
+            <span>CONTINUE</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 4 — GAME (DISCUSSION)
+    ============================================================= -->
+    <section class="screen" id="screen-game" data-screen="game">
+      <header class="screen-header">
+        <span class="screen-header-label" id="round-indicator">ROUND 1</span>
+        <span class="status-pill status-pill--live"><span class="status-dot"></span><span id="players-in-game-count">6</span> AGENTS</span>
+      </header>
+
+      <div class="game-stack">
+        <div class="timer-ring-wrap">
+          <svg class="timer-ring" viewBox="0 0 200 200">
+            <circle class="timer-ring-track" cx="100" cy="100" r="90"/>
+            <circle class="timer-ring-progress" id="timer-ring-progress" cx="100" cy="100" r="90"/>
+          </svg>
+          <div class="timer-ring-center">
+            <span class="timer-value" id="timer-value">03:00</span>
+            <span class="timer-label">DISCUSSION</span>
+          </div>
+        </div>
+
+      
+
+        <!-- FASTAPI: GET /players — render live list of agents still in play -->
+        <div class="chip-row" id="in-game-players">
+          <!-- Player chips injected by script.js -->
+        </div>
+
+        <button class="btn btn--danger btn--large" id="btn-go-to-vote">
+          <span>CALL FOR VOTE</span>
+          <span class="btn-glow btn-glow--danger"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 5 — VOTING
+    ============================================================= -->
+    <section class="screen" id="screen-vote" data-screen="vote">
+      <header class="screen-header">
+        <span class="screen-header-label">FINAL VOTE</span>
+        <span class="status-pill"><span class="status-dot status-dot--red"></span>LOCKING SOON</span>
+      </header>
+
+      <div class="vote-stack">
+        <h2 class="vote-title">Who is the Spy?</h2>
+        <p class="vote-subtitle">Select one agent. Choose carefully.</p>
+
+        <!-- FASTAPI: GET /players — build one selectable card per player -->
+        <div class="vote-grid" id="vote-grid">
+          <!-- Vote cards injected by script.js -->
+        </div>
+
+        <!-- FASTAPI: submit vote to backend, then trigger results -->
+        <button class="btn btn--primary btn--large" id="btn-confirm-vote" disabled>
+          <span>CONFIRM VOTE</span>
+          <span class="btn-glow"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 6 — RESULTS
+    ============================================================= -->
+    <section class="screen" id="screen-results" data-screen="results">
+      <div class="results-stack">
+        <span class="role-tag role-tag--spy" id="results-outcome-tag">SPIES WIN</span>
+
+        <div class="glass-card reveal-card">
+          <span class="field-label">THE SPY WAS</span>
+          <div class="reveal-player">
+            <span class="reveal-avatar" id="reveal-avatar">M</span>
+            <span class="reveal-name" id="reveal-name">Agent Nyx</span>
+          </div>
+          <p class="reveal-word">Secret word was <strong id="reveal-word">HOSPITAL</strong></p>
+        </div>
+        <div class="glass-card scores-card" hidden>
+            <span class="field-label">FINAL SCORES</span>
+            <ul class="score-list" id="score-list"></ul>
+        </div>
+        <div class="btn-stack">
+          <button class="btn btn--primary btn--large" id="btn-play-again">
+            <span>PLAY AGAIN</span>
+            <span class="btn-glow"></span>
+          </button>
+          <button class="btn btn--ghost" id="btn-back-home">
+            <span>BACK TO HOME</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ REUSABLE TEMPLATES (cloned by script.js) ============ -->
+  <template id="tpl-player-row">
+    <li class="player-row">
+      <span class="player-avatar"></span>
+      <span class="player-name"></span>
+      <span class="player-host-badge">HOST</span>
+      <span class="player-ready-dot"></span>
+    </li>
+  </template>
+
+  <template id="tpl-player-chip">
+    <span class="player-chip">
+      <span class="player-chip-avatar"></span>
+      <span class="player-chip-name"></span>
+    </span>
+  </template>
+
+  <template id="tpl-vote-card">
+    <button class="vote-card" type="button">
+      <span class="vote-card-avatar"></span>
+      <span class="vote-card-name"></span>
+      <span class="vote-card-check">
+        <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </button>
+  </template>
+
+  <template id="tpl-score-row">
+    <li class="score-row">
+      <span class="score-rank"></span>
+      <span class="score-avatar"></span>
+      <span class="score-name"></span>
+      <span class="score-points"></span>
+    </li>
+  </template>
+
+  <script src="/static/script.js?v=2"></script>
+</body>
+</html>
